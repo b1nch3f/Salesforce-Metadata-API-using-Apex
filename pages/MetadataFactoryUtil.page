@@ -1,0 +1,73 @@
+<apex:page controller="MetadataFactoryUtil" showHeader="false" sidebar="false">
+    <style>
+        pre {
+            font-size: 12px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.3/FileSaver.min.js" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip-utils/0.0.2/jszip-utils.min.js" />
+    <apex:includeScript value="{!$Resource.vkbeautify}"/>
+    
+    <input type="button" value="Retrieve" onclick="retrieve();"/>
+    
+    <script>
+        var asyncId;
+        var isIncludeZip = true;
+        
+        var retrieve = function() {
+            MetadataFactoryUtil.retrieve_x(function(result, event) { 
+                if(event.type === 'exception') { 
+                    console.log("exception"); 
+                    console.log(event); 
+                } else if(event.status) { 
+                    console.log(result);
+                    asyncId = result;
+                    if(asyncId) getZip();
+                } else { 
+                    console.log(event.message); 
+                } 
+            });   
+        }
+        
+        var getZip = function(a) {
+            MetadataFactoryUtil.checkRetrieveStatus(asyncId, isIncludeZip, function(result, event) { 
+                if(event.type === 'exception') { 
+                    console.log("exception"); 
+                    console.log(event); 
+                } else if(event.status) { 
+                    if(!result) { 
+                        getZip();
+                    } else {
+                        console.log(result);
+                        
+                        var zip = new JSZip();
+                        var res = '';
+
+                        zip.loadAsync(result, {base64: true}).then(function (zip) {
+                            var files = zip.files;
+                            $.each(files, function(i, v) {
+                                var file = v;
+                                console.log(file.name);
+
+                                file.async("text")
+                                .then(function (content) {
+                                    $('<pre/>', {
+                                        text: content
+                                    }).appendTo('body');
+                                    $('<br/>', {
+                                    }).appendTo('body');
+                                });
+                            })
+                        });
+
+                        //vkbeautify.xml($(document));
+                    }
+                } else { 
+                    console.log(event.message); 
+                } 
+            });
+        }
+    </script>
+</apex:page>
